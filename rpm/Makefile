@@ -37,7 +37,11 @@ tarball: setup
 
 spec: setup
 	@echo "Copying spec file..."
-	@cp rpm/$(PACKAGE_NAME).spec $(BUILD_DIR)/SPECS/
+	@if [ -f $(PACKAGE_NAME).spec ]; then \
+		cp $(PACKAGE_NAME).spec $(BUILD_DIR)/SPECS/; \
+	else \
+		cp rpm/$(PACKAGE_NAME).spec $(BUILD_DIR)/SPECS/; \
+	fi
 
 build: setup tarball spec
 	@echo "Building RPM..."
