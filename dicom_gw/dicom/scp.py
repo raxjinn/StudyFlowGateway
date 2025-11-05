@@ -386,35 +386,48 @@ class CStoreSCP:
         
         # Add Storage SCP support
         # Add all storage SOP classes (we accept any DICOM storage)
-        from pynetdicom.sop_class import (
-            CTImageStorage,
-            MRImageStorage,
-            USImageStorage,
-            SecondaryCaptureImageStorage,
-            # Add more as needed
-        )
+        # Try to import specific SOP classes, but fallback to StorageSOPClassList
         
-        # Add supported SOP classes
         # Add verification SOP class (C-ECHO) - use UID directly
         # VerificationSOPClass doesn't exist in newer pynetdicom versions
         try:
             from pynetdicom.sop_class import VerificationSOPClass
             self.ae.add_supported_context(VerificationSOPClass)
         except ImportError:
-            # Fallback: Use verification UID directly
-            from pynetdicom.sop_class import Verification
-            self.ae.add_supported_context(Verification)
-        self.ae.add_supported_context(CTImageStorage)
-        self.ae.add_supported_context(MRImageStorage)
-        self.ae.add_supported_context(USImageStorage)
-        self.ae.add_supported_context(SecondaryCaptureImageStorage)
+            try:
+                # Fallback: Use Verification class
+                from pynetdicom.sop_class import Verification
+                self.ae.add_supported_context(Verification)
+            except ImportError:
+                # Skip verification if not available
+                logger.warning("Verification SOP class not available, skipping C-ECHO support")
+        
+        # Try to add specific storage SOP classes (if available)
+        try:
+            from pynetdicom.sop_class import (
+                CTImageStorage,
+                MRImageStorage,
+                SecondaryCaptureImageStorage,
+            )
+            self.ae.add_supported_context(CTImageStorage)
+            self.ae.add_supported_context(MRImageStorage)
+            self.ae.add_supported_context(SecondaryCaptureImageStorage)
+        except ImportError:
+            logger.warning("Some specific SOP classes not available, using StorageSOPClassList")
         
         # Add all storage SOP classes (wildcard approach)
         # This is more permissive - accepts any storage SOP class
-        from pynetdicom.sop_class import StorageSOPClassList
-        
-        for storage_class in StorageSOPClassList:
-            self.ae.add_supported_context(storage_class)
+        try:
+            from pynetdicom.sop_class import StorageSOPClassList
+            for storage_class in StorageSOPClassList:
+                self.ae.add_supported_context(storage_class)
+        except ImportError:
+            logger.warning("StorageSOPClassList not available, using basic storage support")
+            # Fallback: Add basic storage support using UID
+            from pynetdicom.sop_class import StoragePresentationContexts
+            # Add all presentation contexts from storage
+            for context in StoragePresentationContexts:
+                self.ae.add_supported_context(context.abstract_syntax)
         
         # Create handlers
         handlers = [(evt.EVT_C_STORE, self._handle_store)]
