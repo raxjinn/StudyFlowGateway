@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncEngine,
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -30,15 +30,14 @@ class DatabaseManager:
         self.database_url = database_url or settings.database_url
         
         # Create async engine with connection pooling
+        # For async engines, use pool_size (not poolclass)
         self.engine: AsyncEngine = create_async_engine(
             self.database_url,
-            poolclass=QueuePool,
             pool_size=settings.database_pool_min,
             max_overflow=settings.database_pool_max - settings.database_pool_min,
             pool_pre_ping=True,  # Verify connections before using
             pool_recycle=3600,  # Recycle connections after 1 hour
             echo=settings.app_debug,  # Log SQL queries in debug mode
-            future=True,
         )
         
         # Create session factory
