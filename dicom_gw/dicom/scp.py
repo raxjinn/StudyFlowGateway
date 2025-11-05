@@ -11,7 +11,14 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 from pynetdicom import AE, evt, StoragePresentationContexts
-from pynetdicom.sop_class import Verification  # type: ignore[attr-defined]
+
+# Verification may not exist in all pynetdicom versions
+try:
+    from pynetdicom.sop_class import Verification  # type: ignore[attr-defined]
+except ImportError:
+    # Fallback: use the UID directly
+    from pydicom.uid import VerificationPresentationContexts
+    Verification = VerificationPresentationContexts[0].abstract_syntax if VerificationPresentationContexts else None
 from pydicom.dataset import Dataset
 from pydicom.uid import UID
 from typing import cast
@@ -109,15 +116,22 @@ class CStoreSCP:
                 sop_instance_uid = str(dataset.get("SOPInstanceUID", "UNKNOWN"))
                 study_instance_uid = str(dataset.get("StudyInstanceUID", "UNKNOWN"))
             except Exception as e:
-                logger.warning(f"Could not extract UIDs from dataset: {e}")
+                logger.warning("Could not extract UIDs from dataset: %s", e)
+                sop_instance_uid = "UNKNOWN"
+                study_instance_uid = "UNKNOWN"
+            
+            # Validate UIDs before proceeding
+            if sop_instance_uid == "UNKNOWN" or study_instance_uid == "UNKNOWN":
+                logger.error("Missing required UIDs, cannot process C-STORE")
+                return 0x0110  # Processing failure
             
             # Use pynetdicom's built-in encoded_dataset() method which automatically
             # handles the DICOM file format structure (preamble + prefix + file meta + dataset)
             try:
                 raw_data = event.encoded_dataset()
-                logger.debug(f"Got encoded dataset from event: {len(raw_data)} bytes")
+                logger.debug("Got encoded dataset from event: %d bytes", len(raw_data))
             except (AttributeError, Exception) as e:
-                logger.warning(f"Could not get encoded_dataset from event: {e}, trying fallback")
+                logger.warning("Could not get encoded_dataset from event: %s, trying fallback", e)
                 # Fallback: reconstruct from dataset
                 raw_data = self._reconstruct_bytes_from_dataset(dataset)
             
@@ -373,6 +387,7 @@ class CStoreSCP:
         """Start the C-STORE SCP server."""
         # Create Application Entity
         self.ae = AE(ae_title=self.ae_title)
+        self.ae.maximum_pdu_size = getattr(self, 'max_pdu_size', 16384)  # Default 16KB
         
         # Add Storage SCP support using StoragePresentationContexts
         # This is the recommended way to add all storage SOP classes
@@ -383,8 +398,9 @@ class CStoreSCP:
             ts_list = [cast(UID, ts) for ts in cx.transfer_syntax if ts is not None]
             self.ae.add_supported_context(as_uid, ts_list)
         
-        # Add verification SOP class (C-ECHO)
-        self.ae.add_supported_context(Verification)
+        # Add verification SOP class (C-ECHO) if available
+        if Verification is not None:
+            self.ae.add_supported_context(Verification)
         
         # Create handlers
         handlers = [(evt.EVT_C_STORE, self._handle_store)]
@@ -394,7 +410,6 @@ class CStoreSCP:
             ("", self.port),
             block=False,
             evt_handlers=handlers,
-            max_pdu=self.max_pdu,
         )
         
         logger.info(
