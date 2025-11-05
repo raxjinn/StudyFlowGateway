@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 from pynetdicom import AE, evt
-from pynetdicom.sop_class import VerificationSOPClass
+# VerificationSOPClass is imported later from pynetdicom.sop_class
 from pydicom.dataset import Dataset
 # InvalidDICOMError doesn't exist in newer pydicom versions
 # Use generic Exception or ValueError instead
@@ -395,6 +395,8 @@ class CStoreSCP:
         )
         
         # Add supported SOP classes
+        # Add verification SOP class (imported inline)
+        from pynetdicom.sop_class import VerificationSOPClass
         self.ae.add_supported_context(VerificationSOPClass)
         self.ae.add_supported_context(CTImageStorage)
         self.ae.add_supported_context(MRImageStorage)
