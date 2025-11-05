@@ -107,8 +107,8 @@ pip install -r requirements.txt
 ### 4. Install Node.js (for frontend)
 
 ```bash
-# Install Node.js 18+
-curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+# Install Node.js 20.x LTS
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
 sudo dnf install -y nodejs
 
 # Verify installation

@@ -60,8 +60,8 @@ sudo dnf install -y python39 python39-devel python39-pip
 # Install PostgreSQL development headers
 sudo dnf install -y postgresql postgresql-devel
 
-# Install Node.js for frontend build
-curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+# Install Node.js for frontend build (Node.js 20.x LTS)
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
 sudo dnf install -y nodejs
 
 # Setup RPM build directory

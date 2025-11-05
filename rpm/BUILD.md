@@ -56,8 +56,8 @@ echo "%_topdir %(echo $HOME)/rpmbuild" > ~/.rpmmacros
 ### 3. Install Node.js (for frontend build)
 
 ```bash
-# Install Node.js 18+ from NodeSource
-curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+# Install Node.js 20.x LTS from NodeSource
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
 sudo dnf install -y nodejs
 
 # Or use the version available in repos

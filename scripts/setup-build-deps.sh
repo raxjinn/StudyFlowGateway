@@ -64,8 +64,8 @@ fi
 # Install Node.js for frontend build
 echo "Installing Node.js..."
 if ! command -v node &> /dev/null; then
-    echo "Installing Node.js from NodeSource..."
-    curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+    echo "Installing Node.js 20.x LTS from NodeSource..."
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
     sudo dnf install -y nodejs
 else
     echo "Node.js already installed: $(node --version)"
