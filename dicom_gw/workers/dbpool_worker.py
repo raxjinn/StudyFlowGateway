@@ -54,7 +54,15 @@ class DBPoolWorker:
             batch_interval: Seconds between batch flushes
             max_batch_size: Maximum records per batch
         """
-        self.worker_id = worker_id or f"dbpool-worker-{asyncio.get_event_loop().time()}"
+        # Use asyncio.get_running_loop() or create new event loop for worker ID
+        try:
+            loop = asyncio.get_running_loop()
+            worker_suffix = loop.time()
+        except RuntimeError:
+            # No running loop, use time.time() instead
+            import time
+            worker_suffix = time.time()
+        self.worker_id = worker_id or f"dbpool-worker-{worker_suffix}"
         self.batch_interval = batch_interval
         self.max_batch_size = max_batch_size
         self.running = False
@@ -80,7 +88,8 @@ class DBPoolWorker:
     async def start(self):
         """Start the DB pool worker."""
         self.running = True
-        self.stats["started_at"] = datetime.utcnow()
+        from datetime import timezone
+        self.stats["started_at"] = datetime.now(timezone.utc)
         
         logger.info("Starting DB pool worker: %s", self.worker_id)
         

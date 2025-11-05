@@ -13,7 +13,9 @@ from datetime import datetime
 from pynetdicom import AE, evt
 from pynetdicom.sop_class import VerificationSOPClass
 from pydicom.dataset import Dataset
-from pydicom.errors import InvalidDICOMError
+# InvalidDICOMError doesn't exist in newer pydicom versions
+# Use generic Exception or ValueError instead
+InvalidDICOMError = ValueError
 
 from dicom_gw.dicom.io import (
     write_dicom_bytes_sync,

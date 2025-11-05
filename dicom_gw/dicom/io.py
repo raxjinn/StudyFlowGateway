@@ -11,7 +11,9 @@ from typing import Optional, Tuple, BinaryIO
 import aiofiles
 import pydicom
 from pydicom.dataset import Dataset
-from pydicom.errors import InvalidDICOMError
+# InvalidDICOMError doesn't exist in newer pydicom versions
+# Use generic Exception or ValueError instead
+InvalidDICOMError = ValueError
 
 logger = logging.getLogger(__name__)
 
