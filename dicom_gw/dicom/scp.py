@@ -10,9 +10,11 @@ import time
 from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pynetdicom import AE, evt
-# VerificationSOPClass is imported later from pynetdicom.sop_class
+from pynetdicom import AE, evt, StoragePresentationContexts
+from pynetdicom.sop_class import Verification  # type: ignore[attr-defined]
 from pydicom.dataset import Dataset
+from pydicom.uid import UID
+from typing import cast
 # InvalidDICOMError doesn't exist in newer pydicom versions
 # Use generic Exception or ValueError instead
 InvalidDICOMError = ValueError
@@ -109,26 +111,14 @@ class CStoreSCP:
             except Exception as e:
                 logger.warning(f"Could not extract UIDs from dataset: {e}")
             
-            # Get the raw bytes from the association
-            # pynetdicom stores the raw data in the event
-            raw_data = None
-            if hasattr(event, "request") and hasattr(event.request, "DataSet"):
-                # Try to get raw bytes from the request
-                try:
-                    # pynetdicom may have the raw bytes in the association
-                    # We need to reconstruct from the dataset or get from network layer
-                    # For now, we'll use pydicom's file writer but in a way that preserves structure
-                    raw_data = self._get_raw_bytes_from_dataset(event)
-                except Exception as e:
-                    logger.warning(f"Could not extract raw bytes: {e}")
-            
-            # If we couldn't get raw bytes, we'll need to reconstruct
-            # but this is a fallback - ideally we capture raw bytes from network
-            if raw_data is None:
-                logger.warning(
-                    f"Raw bytes not available, reconstructing from dataset "
-                    f"(may not preserve exact preamble): {sop_instance_uid}"
-                )
+            # Use pynetdicom's built-in encoded_dataset() method which automatically
+            # handles the DICOM file format structure (preamble + prefix + file meta + dataset)
+            try:
+                raw_data = event.encoded_dataset()
+                logger.debug(f"Got encoded dataset from event: {len(raw_data)} bytes")
+            except (AttributeError, Exception) as e:
+                logger.warning(f"Could not get encoded_dataset from event: {e}, trying fallback")
+                # Fallback: reconstruct from dataset
                 raw_data = self._reconstruct_bytes_from_dataset(dataset)
             
             receive_duration_ms = int((time.time() - start_time) * 1000)
@@ -384,50 +374,17 @@ class CStoreSCP:
         # Create Application Entity
         self.ae = AE(ae_title=self.ae_title)
         
-        # Add Storage SCP support
-        # Add all storage SOP classes (we accept any DICOM storage)
-        # Try to import specific SOP classes, but fallback to StorageSOPClassList
+        # Add Storage SCP support using StoragePresentationContexts
+        # This is the recommended way to add all storage SOP classes
+        for cx in StoragePresentationContexts:
+            if cx.abstract_syntax is None:
+                continue
+            as_uid = cast(UID, cx.abstract_syntax)
+            ts_list = [cast(UID, ts) for ts in cx.transfer_syntax if ts is not None]
+            self.ae.add_supported_context(as_uid, ts_list)
         
-        # Add verification SOP class (C-ECHO) - use UID directly
-        # VerificationSOPClass doesn't exist in newer pynetdicom versions
-        try:
-            from pynetdicom.sop_class import VerificationSOPClass
-            self.ae.add_supported_context(VerificationSOPClass)
-        except ImportError:
-            try:
-                # Fallback: Use Verification class
-                from pynetdicom.sop_class import Verification
-                self.ae.add_supported_context(Verification)
-            except ImportError:
-                # Skip verification if not available
-                logger.warning("Verification SOP class not available, skipping C-ECHO support")
-        
-        # Try to add specific storage SOP classes (if available)
-        try:
-            from pynetdicom.sop_class import (
-                CTImageStorage,
-                MRImageStorage,
-                SecondaryCaptureImageStorage,
-            )
-            self.ae.add_supported_context(CTImageStorage)
-            self.ae.add_supported_context(MRImageStorage)
-            self.ae.add_supported_context(SecondaryCaptureImageStorage)
-        except ImportError:
-            logger.warning("Some specific SOP classes not available, using StorageSOPClassList")
-        
-        # Add all storage SOP classes (wildcard approach)
-        # This is more permissive - accepts any storage SOP class
-        try:
-            from pynetdicom.sop_class import StorageSOPClassList
-            for storage_class in StorageSOPClassList:
-                self.ae.add_supported_context(storage_class)
-        except ImportError:
-            logger.warning("StorageSOPClassList not available, using basic storage support")
-            # Fallback: Add basic storage support using UID
-            from pynetdicom.sop_class import StoragePresentationContexts
-            # Add all presentation contexts from storage
-            for context in StoragePresentationContexts:
-                self.ae.add_supported_context(context.abstract_syntax)
+        # Add verification SOP class (C-ECHO)
+        self.ae.add_supported_context(Verification)
         
         # Create handlers
         handlers = [(evt.EVT_C_STORE, self._handle_store)]
