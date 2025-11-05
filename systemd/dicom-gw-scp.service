@@ -31,8 +31,11 @@ StartLimitBurst=5
 
 # Security settings
 # Allow binding to privileged ports (port 104 for DICOM)
+# Note: AmbientCapabilities requires the capability to be in the bounding set
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 AmbientCapabilities=CAP_NET_BIND_SERVICE
-NoNewPrivileges=true
+# NoNewPrivileges must be false for AmbientCapabilities to work
+NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
