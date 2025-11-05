@@ -273,7 +273,7 @@ fi
 %dir %{log_path}
 
 %changelog
-* Tue Jan 01 2024 Your Name <email@example.com> - 0.1.0-1
+* Mon Jan 06 2025 DICOM Gateway Team <noreply@example.com> - 0.1.0-1
 - Initial release of DICOM Gateway
 - Byte-preserving DICOM I/O
 - PostgreSQL-backed job queue
