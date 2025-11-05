@@ -345,7 +345,7 @@ class AuditLog(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text)
     
     # Additional context (JSON)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSONB)
+    audit_metadata: Mapped[Optional[dict]] = mapped_column(JSONB, name="metadata")
     
     # Timestamp (immutable)
     created_at: Mapped[datetime] = mapped_column(

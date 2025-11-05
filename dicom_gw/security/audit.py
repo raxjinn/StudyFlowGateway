@@ -58,7 +58,7 @@ async def log_audit_event(
                 resource_id=resource_id,
                 status=status,
                 error_message=error_message,
-                metadata=metadata,
+                audit_metadata=metadata,
             )
             
             session.add(audit_log)
