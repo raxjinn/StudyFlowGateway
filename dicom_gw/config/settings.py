@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables and config files."""
     
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[
+            ".env",
+            "/etc/dicom-gw/dicom-gw-api.env",
+            "/etc/dicom-gw/dicom-gw-workers.env",
+        ],
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
