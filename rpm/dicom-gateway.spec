@@ -70,6 +70,7 @@ Features:
 # Create directories
 mkdir -p %{buildroot}%{app_path}
 mkdir -p %{buildroot}%{config_path}
+mkdir -p %{buildroot}%{config_path}/tls
 mkdir -p %{buildroot}%{data_path}
 mkdir -p %{buildroot}%{log_path}
 mkdir -p %{buildroot}%{_unitdir}
