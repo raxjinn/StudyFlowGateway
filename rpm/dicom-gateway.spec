@@ -25,7 +25,6 @@ BuildRequires:  %{python_pkg} >= 3.11
 BuildRequires:  %{python_pkg}-devel
 BuildRequires:  %{python_pkg}-pip
 BuildRequires:  %{python_pkg}-setuptools
-BuildRequires:  %{python_pkg}-wheel
 BuildRequires:  gcc
 BuildRequires:  openssl-devel
 Requires:       %{python_pkg} >= 3.11
