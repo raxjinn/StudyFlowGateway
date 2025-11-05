@@ -148,7 +148,7 @@ def get_settings(config_path: Optional[Path] = None) -> Settings:
                     _settings.database_pool_acquire_timeout = yaml_config.database.pool_acquire_timeout
                 
                 if yaml_config.application:
-                    _settings.app_name = yaml_config.application.name
+                    # app_name not in Settings model, skip
                     _settings.app_debug = yaml_config.application.debug
                     _settings.api_prefix = yaml_config.application.api_prefix
                     _settings.app_host = yaml_config.application.api_host
