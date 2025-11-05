@@ -124,6 +124,11 @@ def get_settings(config_path: Optional[Path] = None) -> Settings:
         if config_path is None:
             config_path = Path("/etc/dicom-gw/config.yaml")
         
+        # Check if DATABASE_URL is set in environment - if so, use it and skip YAML URL construction
+        env_database_url = os.getenv("DATABASE_URL")
+        if env_database_url:
+            _settings.database_url = env_database_url
+        
         if config_path.exists():
             try:
                 from dicom_gw.config.yaml_config import get_config_manager
@@ -133,16 +138,18 @@ def get_settings(config_path: Optional[Path] = None) -> Settings:
                 # Merge YAML config into settings
                 # This allows environment variables to override YAML
                 if yaml_config.database:
-                    # Use existing password from environment if available
-                    db_password = os.getenv("DICOM_GW_DATABASE_PASSWORD", "")
-                    if not db_password and yaml_config.database.password:
-                        db_password = yaml_config.database.password
-                    
-                    _settings.database_url = (
-                        f"postgresql+asyncpg://{yaml_config.database.username}:"
-                        f"{db_password}@{yaml_config.database.host}:"
-                        f"{yaml_config.database.port}/{yaml_config.database.database}"
-                    )
+                    # Only construct database_url from YAML if DATABASE_URL env var is not set
+                    if not env_database_url:
+                        # Use existing password from environment if available
+                        db_password = os.getenv("DICOM_GW_DATABASE_PASSWORD", "")
+                        if not db_password and yaml_config.database.password:
+                            db_password = yaml_config.database.password
+                        
+                        _settings.database_url = (
+                            f"postgresql+asyncpg://{yaml_config.database.username}:"
+                            f"{db_password}@{yaml_config.database.host}:"
+                            f"{yaml_config.database.port}/{yaml_config.database.database}"
+                        )
                     _settings.database_pool_min = yaml_config.database.pool_min_size
                     _settings.database_pool_max = yaml_config.database.pool_max_size
                     _settings.database_pool_acquire_timeout = yaml_config.database.pool_acquire_timeout
