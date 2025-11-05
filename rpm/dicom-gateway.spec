@@ -18,7 +18,7 @@ Release:        1%{?dist}
 Summary:        HIPAA-compliant Linux DICOM Gateway for receiving and forwarding medical imaging studies
 License:        Proprietary
 Group:          Applications/Medical
-URL:            https://github.com/yourorg/dicom-gateway
+URL:            https://github.com/raxjinn/StudyFlowGateway
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildRequires:  %{python_pkg} >= 3.11
