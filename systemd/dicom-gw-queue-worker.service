@@ -1,0 +1,60 @@
+[Unit]
+Description=DICOM Gateway Queue Worker Service
+After=network.target postgresql.service dicom-gw-api.service
+Wants=postgresql.service
+Documentation=https://github.com/yourorg/dicom-gateway
+
+[Service]
+Type=simple
+User=dicom-gw
+Group=dicom-gw
+WorkingDirectory=/opt/dicom-gw
+
+# Environment variables
+Environment="PATH=/opt/dicom-gw/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+EnvironmentFile=-/etc/dicom-gw/dicom-gw-workers.env
+
+# Application startup
+ExecStart=/opt/dicom-gw/venv/bin/python -m dicom_gw.workers.queue_worker
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dicom-gw /var/log/dicom-gw /etc/dicom-gw
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=dicom-gw-queue-worker
+
+[Install]
+WantedBy=multi-user.target
+

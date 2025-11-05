@@ -1,0 +1,82 @@
+%% DICOM Gateway Architecture Diagram
+%% Can be rendered with Mermaid.js (GitHub, GitLab, VS Code, etc.)
+
+graph TB
+    subgraph External["External Systems"]
+        DICOM_CLIENT["DICOM Clients<br/>(Modalities/PACS)"]
+        WEB_USER["Web Users<br/>(Browser)"]
+    end
+
+    subgraph Gateway["DICOM Gateway System"]
+        subgraph Network["Network Layer"]
+            NGINX["Nginx<br/>(HTTPS :443)"]
+            SCP["C-STORE SCP<br/>(Receiver :104)"]
+        end
+
+        subgraph API["API Layer"]
+            FASTAPI["FastAPI<br/>(REST API :8000)"]
+            VUE["Vue.js<br/>(Web UI)"]
+        end
+
+        subgraph Workers["Worker Services"]
+            QUEUE_WORKER["Queue Worker<br/>(Process Jobs)"]
+            FORWARD_WORKER["Forwarding Worker<br/>(Forward Studies)"]
+            DB_WORKER["DB Pool Worker<br/>(Batch Writes)"]
+            SCU["C-STORE SCU<br/>(Forwarder)"]
+        end
+
+        subgraph Storage["Storage"]
+            DB[(PostgreSQL<br/>Database)]
+            FILESYSTEM["Filesystem<br/>/var/lib/dicom-gw/"]
+        end
+    end
+
+    subgraph Destinations["Remote Destinations"]
+        PACS["Remote PACS<br/>(C-STORE SCP)"]
+        ARCHIVE["DICOM Archive<br/>(C-STORE SCP)"]
+    end
+
+    %% External connections
+    DICOM_CLIENT -->|C-STORE| SCP
+    WEB_USER -->|HTTPS| NGINX
+    NGINX -->|HTTP| FASTAPI
+    NGINX -->|Static Files| VUE
+    VUE -->|API Calls| FASTAPI
+
+    %% SCP flow
+    SCP -->|Store File| FILESYSTEM
+    SCP -->|Queue Job| DB
+
+    %% API flow
+    FASTAPI -->|Read/Write| DB
+    FASTAPI -->|Metrics| DB
+
+    %% Worker flow
+    DB -->|LISTEN/NOTIFY| QUEUE_WORKER
+    QUEUE_WORKER -->|Read File| FILESYSTEM
+    QUEUE_WORKER -->|Create Jobs| DB
+    QUEUE_WORKER -->|Insert Metadata| DB
+
+    DB -->|Poll Jobs| FORWARD_WORKER
+    FORWARD_WORKER -->|Read File| FILESYSTEM
+    FORWARD_WORKER -->|Forward| SCU
+    SCU -->|C-STORE| PACS
+    SCU -->|C-STORE| ARCHIVE
+    FORWARD_WORKER -->|Update Status| DB
+
+    DB -->|Batch Events| DB_WORKER
+    DB_WORKER -->|Batch Inserts| DB
+
+    style DICOM_CLIENT fill:#e1f5ff
+    style WEB_USER fill:#e1f5ff
+    style SCP fill:#fff4e1
+    style FASTAPI fill:#fff4e1
+    style VUE fill:#fff4e1
+    style QUEUE_WORKER fill:#e8f5e9
+    style FORWARD_WORKER fill:#e8f5e9
+    style DB_WORKER fill:#e8f5e9
+    style DB fill:#f3e5f5
+    style FILESYSTEM fill:#f3e5f5
+    style PACS fill:#ffe1e1
+    style ARCHIVE fill:#ffe1e1
+

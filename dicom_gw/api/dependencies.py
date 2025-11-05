@@ -1,0 +1,90 @@
+"""FastAPI dependencies for authentication and authorization."""
+
+from typing import Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+from dicom_gw.database.models import User
+from dicom_gw.api.routers.auth import get_current_user
+from dicom_gw.security.rbac import Permission, has_permission, require_role, Role
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Get current active user (dependency).
+    
+    Args:
+        current_user: Current user from token
+    
+    Returns:
+        User object if active
+    
+    Raises:
+        HTTPException: If user is not active
+    """
+    if not current_user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled",
+        )
+    
+    return current_user
+
+
+def require_permission(permission: Permission):
+    """Dependency factory for requiring a specific permission.
+    
+    Args:
+        permission: Required permission
+    
+    Returns:
+        Dependency function
+    """
+    async def permission_checker(
+        current_user: User = Depends(get_current_active_user),
+    ) -> User:
+        if not has_permission(current_user.role, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission required: {permission.value}",
+            )
+        return current_user
+    
+    return permission_checker
+
+
+def require_role_dependency(required_role: Role):
+    """Dependency factory for requiring a specific role.
+    
+    Args:
+        required_role: Minimum required role
+    
+    Returns:
+        Dependency function
+    """
+    async def role_checker(
+        current_user: User = Depends(get_current_active_user),
+    ) -> User:
+        if not require_role(current_user.role, required_role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role required: {required_role.value}",
+            )
+        return current_user
+    
+    return role_checker
+
+
+# Common permission dependencies
+RequireAdmin = require_role_dependency(Role.ADMIN)
+RequireOperator = require_role_dependency(Role.OPERATOR)
+
+# Common permission dependencies
+RequireViewStudies = require_permission(Permission.VIEW_STUDIES)
+RequireManageStudies = require_permission(Permission.MANAGE_STUDIES)
+RequireManageDestinations = require_permission(Permission.MANAGE_DESTINATIONS)
+RequireManageConfig = require_permission(Permission.MANAGE_CONFIG)
+

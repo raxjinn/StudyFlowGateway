@@ -1,0 +1,107 @@
+# DICOM Gateway Configuration File
+# This is an example configuration file. Copy to /etc/dicom-gw/config.yaml
+# and customize for your environment.
+
+database:
+  host: localhost
+  port: 5432
+  database: dicom_gw
+  username: dicom_gw
+  password: ""  # Set via environment variable DICOM_GW_DATABASE_PASSWORD
+  pool_min_size: 5
+  pool_max_size: 20
+  pool_acquire_timeout: 30
+  echo: false
+
+application:
+  name: "DICOM Gateway"
+  version: "0.1.0"
+  debug: false
+  api_prefix: "/api/v1"
+  api_host: "0.0.0.0"
+  api_port: 8000
+  cors_origins:
+    - "*"
+  secret_key: ""  # Set via environment variable DICOM_GW_APPLICATION_SECRET_KEY
+  jwt_secret_key: ""  # Set via environment variable DICOM_GW_APPLICATION_JWT_SECRET_KEY
+  jwt_algorithm: "HS256"
+  jwt_expiration_hours: 24
+
+dicom_storage:
+  base_path: "/var/lib/dicom-gw/storage"
+  study_path_template: "{study_instance_uid}"
+  series_path_template: "{series_instance_uid}"
+  instance_path_template: "{sop_instance_uid}.dcm"
+  preserve_directory_structure: true
+
+dicom_network:
+  local_ae_title: "DICOMGW"
+  listen_port: 104
+  max_pdu: 16384
+  association_timeout: 30
+  connection_timeout: 10
+
+tls:
+  enabled: false
+  cert_file: null
+  key_file: null
+  ca_file: null
+  no_verify: false
+  cipher_suites: []
+
+security:
+  password_min_length: 8
+  password_require_uppercase: true
+  password_require_lowercase: true
+  password_require_numbers: true
+  password_require_special: false
+  account_lockout_attempts: 5
+  account_lockout_duration_minutes: 30
+  session_timeout_hours: 24
+  argon2_time_cost: 2
+  argon2_memory_cost: 65536  # 64 MB
+  argon2_parallelism: 4
+
+workers:
+  queue_worker_poll_interval: 5.0
+  queue_worker_batch_size: 10
+  forwarder_worker_poll_interval: 5.0
+  forwarder_worker_batch_size: 5
+  dbpool_worker_flush_interval: 10.0
+  dbpool_worker_batch_size: 100
+
+destinations:
+  - name: "PACS_Archive"
+    ae_title: "PACS_ARCHIVE"
+    host: "pacs.example.com"
+    port: 104
+    max_pdu: 16384
+    timeout: 30
+    connection_timeout: 10
+    tls_enabled: false
+    tls_cert_path: null
+    tls_key_path: null
+    tls_ca_path: null
+    tls_no_verify: false
+    description: "Primary PACS archive"
+    enabled: true
+    max_retries: 3
+    retry_backoff_seconds: 60
+  
+  - name: "Backup_Archive"
+    ae_title: "BACKUP_ARCHIVE"
+    host: "backup.example.com"
+    port: 104
+    max_pdu: 16384
+    timeout: 30
+    connection_timeout: 10
+    tls_enabled: true
+    tls_cert_path: "/etc/dicom-gw/certs/client.crt"
+    tls_key_path: "/etc/dicom-gw/certs/client.key"
+    tls_ca_path: "/etc/dicom-gw/certs/ca.crt"
+    tls_no_verify: false
+    description: "Backup archive with TLS"
+    enabled: true
+    max_retries: 3
+    retry_backoff_seconds: 60
+

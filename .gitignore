@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# DICOM files (test data)
+test_data/
+*.dcm
+*.dicom
+
+# Build artifacts
+*.rpm
+*.spec.bak
+rpmbuild/
+BUILD/
+BUILDROOT/
+RPMS/
+SOURCES/
+SPECS/
+SRPMS/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.nuxt/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets
+secrets/
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+!docs/examples/*.example
+
+# Local config overrides
+config/local.yaml
+config/*.local.yaml
+
+# Cursor/IDE files (keep .vscode settings but ignore Cursor-specific)
+.cursor/
+*.code-workspace
+
+# WSL-specific
+.wslconfig
+

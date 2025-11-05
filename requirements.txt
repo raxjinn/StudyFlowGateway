@@ -1,0 +1,56 @@
+# DICOM Gateway - Python Dependencies
+# Python 3.11+ required
+
+# Core DICOM Libraries
+pydicom>=2.4.0          # DICOM file parsing and validation
+pynetdicom>=2.0.0       # DICOM networking (C-STORE SCP/SCU)
+
+# Web Framework
+fastapi>=0.104.0        # Modern async web framework
+uvicorn[standard]>=0.24.0  # ASGI server
+pydantic>=2.5.0         # Data validation
+pydantic-settings>=2.1.0  # Settings management
+
+# Database
+asyncpg>=0.29.0         # Async PostgreSQL driver
+sqlalchemy[asyncio]>=2.0.23  # SQL toolkit and ORM
+alembic>=1.12.0         # Database migrations
+psycopg[binary,pool]>=3.1.0  # PostgreSQL adapter (alternative/fallback)
+
+# Queue & Async
+aiofiles>=23.2.0        # Async file operations
+aiohttp>=3.9.0          # Async HTTP client (optional)
+python-multipart>=0.0.6  # Form data parsing
+
+# Security & Auth
+argon2-cffi>=23.1.0     # Password hashing
+python-jose[cryptography]>=3.3.0  # JWT tokens
+passlib[bcrypt]>=1.7.4  # Password hashing utilities
+cryptography>=41.0.0    # Cryptographic primitives
+
+# Configuration
+pyyaml>=6.0.1           # YAML config parsing
+python-dotenv>=1.0.0    # Environment variable management
+
+# Monitoring & Metrics
+prometheus-client>=0.19.0  # Prometheus metrics export
+
+# Utilities
+python-dateutil>=2.8.2  # Date/time utilities
+pytz>=2023.3            # Timezone support
+
+# Development & Testing
+pytest>=7.4.3           # Testing framework
+pytest-asyncio>=0.21.1  # Async test support
+pytest-cov>=4.1.0       # Coverage reporting
+httpx>=0.25.2           # HTTP client for testing
+aiosqlite>=0.19.0       # Async SQLite for testing
+psutil>=5.9.0           # System and process utilities (for load tests)
+black>=23.11.0          # Code formatting
+flake8>=6.1.0           # Linting
+mypy>=1.7.0             # Type checking
+
+# Production
+gunicorn>=21.2.0        # WSGI server (optional fallback)
+structlog>=23.2.0       # Structured logging
+

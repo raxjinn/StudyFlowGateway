@@ -1,0 +1,1382 @@
+openapi: 3.0.3
+info:
+  title: DICOM Gateway API
+  description: |
+    REST API for DICOM Gateway - A lightweight, HIPAA-compliant Linux DICOM Gateway
+    for receiving and forwarding DICOM studies with byte-preserving integrity.
+    
+    ## Features
+    - C-STORE SCP (receiver) and SCU (forwarder) with byte-preserving transmission
+    - PostgreSQL-backed job queue with LISTEN/NOTIFY
+    - Role-based access control (RBAC)
+    - Comprehensive audit logging
+    - Prometheus metrics export
+    - Configuration management via YAML
+  version: 0.1.0
+  contact:
+    name: DICOM Gateway Support
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://gateway.example.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Metrics
+    description: System metrics and statistics
+  - name: Studies
+    description: DICOM study management
+  - name: Destinations
+    description: DICOM forwarding destination configuration
+  - name: Queues
+    description: Job queue management and monitoring
+  - name: Config
+    description: System configuration management
+  - name: Audit
+    description: Audit log access
+
+paths:
+  /:
+    get:
+      summary: Root endpoint
+      description: Returns API information
+      tags: []
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: DICOM Gateway API
+                  version:
+                    type: string
+                    example: 0.1.0
+                  status:
+                    type: string
+                    example: running
+                  docs:
+                    type: string
+                    example: /api/docs
+
+  /health:
+    get:
+      summary: Health check
+      description: Comprehensive health check including database connectivity
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/live:
+    get:
+      summary: Liveness probe
+      description: Kubernetes liveness probe endpoint
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: alive
+
+  /health/ready:
+    get:
+      summary: Readiness probe
+      description: Kubernetes readiness probe endpoint
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: not_ready
+
+  /metrics:
+    get:
+      summary: Get system metrics
+      description: Returns comprehensive system metrics
+      tags:
+        - Metrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+  /metrics/prometheus:
+    get:
+      summary: Prometheus metrics
+      description: Returns metrics in Prometheus format
+      tags:
+        - Metrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /auth/login:
+    post:
+      summary: Login
+      description: Authenticate user and receive access token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: Returns information about the currently authenticated user
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/users:
+    get:
+      summary: List users
+      description: List all users (admin only)
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      summary: Create user
+      description: Create a new user (admin only)
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/users/{user_id}:
+    get:
+      summary: Get user
+      description: Get user by ID (admin only)
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update user
+      description: Update user (admin only or self)
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete user
+      description: Delete user (admin only)
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /auth/password:
+    post:
+      summary: Change password
+      description: Change current user's password
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /studies:
+    get:
+      summary: List studies
+      description: List DICOM studies with pagination and filtering
+      tags:
+        - Studies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Skip'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Filter by status
+        - name: patient_id
+          in: query
+          schema:
+            type: string
+          description: Filter by patient ID
+        - name: study_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by study date
+      responses:
+        '200':
+          description: List of studies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudySummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /studies/{study_id}:
+    get:
+      summary: Get study by ID
+      description: Get detailed study information by ID
+      tags:
+        - Studies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudyId'
+      responses:
+        '200':
+          description: Study details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /studies/uid/{study_instance_uid}:
+    get:
+      summary: Get study by UID
+      description: Get detailed study information by Study Instance UID
+      tags:
+        - Studies
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: study_instance_uid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Study Instance UID
+      responses:
+        '200':
+          description: Study details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudyDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /studies/{study_id}/forward:
+    post:
+      summary: Forward study
+      description: Create forward jobs for a study to specified destinations
+      tags:
+        - Studies
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StudyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForwardRequest'
+      responses:
+        '200':
+          description: Forward jobs created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  jobs_created:
+                    type: integer
+                  job_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /destinations:
+    get:
+      summary: List destinations
+      description: List all DICOM forwarding destinations
+      tags:
+        - Destinations
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+          description: Filter by enabled status
+        - $ref: '#/components/parameters/Skip'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: List of destinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DestinationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create destination
+      description: Create a new DICOM forwarding destination
+      tags:
+        - Destinations
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DestinationCreate'
+      responses:
+        '201':
+          description: Destination created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /destinations/{destination_id}:
+    get:
+      summary: Get destination
+      description: Get destination by ID
+      tags:
+        - Destinations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DestinationId'
+      responses:
+        '200':
+          description: Destination details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update destination
+      description: Update destination configuration
+      tags:
+        - Destinations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DestinationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DestinationUpdate'
+      responses:
+        '200':
+          description: Destination updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete destination
+      description: Delete destination
+      tags:
+        - Destinations
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DestinationId'
+      responses:
+        '204':
+          description: Destination deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /queues/stats:
+    get:
+      summary: Get queue statistics
+      description: Get job queue statistics
+      tags:
+        - Queues
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Queue statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueStatsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /queues/retry:
+    post:
+      summary: Retry jobs
+      description: Retry failed or dead-letter jobs
+      tags:
+        - Queues
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetryRequest'
+      responses:
+        '200':
+          description: Jobs retried
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retried:
+                    type: integer
+                  job_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No jobs found to retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /queues/replay/{study_instance_uid}:
+    post:
+      summary: Replay study
+      description: Create new forward jobs for a study
+      tags:
+        - Queues
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: study_instance_uid
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Study Instance UID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                destination_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Study replayed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  jobs_created:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /config:
+    get:
+      summary: Get configuration
+      description: Get current configuration (sensitive fields redacted)
+      tags:
+        - Config
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    type: object
+                  config_path:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /config/reload:
+    post:
+      summary: Reload configuration
+      description: Reload configuration from file
+      tags:
+        - Config
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Configuration reloaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigReloadResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /config/upload:
+    post:
+      summary: Upload configuration file
+      description: Upload a new configuration file (YAML)
+      tags:
+        - Config
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Configuration uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  config_path:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '400':
+          description: Invalid file format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /audit:
+    get:
+      summary: List audit logs
+      description: List audit logs with filtering
+      tags:
+        - Audit
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Skip'
+        - $ref: '#/components/parameters/Limit'
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: username
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: resource_type
+          in: query
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: List of audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /audit/{audit_id}:
+    get:
+      summary: Get audit log
+      description: Get specific audit log entry
+      tags:
+        - Audit
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: audit_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit log entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Skip:
+      name: skip
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of records to skip
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+      description: Maximum number of records to return
+
+    StudyId:
+      name: study_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Study ID
+
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: User ID
+
+    DestinationId:
+      name: destination_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Destination ID
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        database:
+          type: string
+          enum: [connected, disconnected, unknown]
+
+    MetricsResponse:
+      type: object
+      properties:
+        queue_stats:
+          type: object
+        worker_stats:
+          type: object
+        scp_stats:
+          type: object
+        scu_stats:
+          type: object
+        studies_stats:
+          type: object
+        destinations_stats:
+          type: object
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          default: bearer
+        expires_in:
+          type: integer
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          nullable: true
+        role:
+          type: string
+        full_name:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    UserCreate:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          default: user
+        full_name:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+        full_name:
+          type: string
+        enabled:
+          type: boolean
+
+    PasswordChange:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+
+    StudySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        study_instance_uid:
+          type: string
+        patient_id:
+          type: string
+          nullable: true
+        patient_name:
+          type: string
+          nullable: true
+        study_date:
+          type: string
+          nullable: true
+        accession_number:
+          type: string
+          nullable: true
+        modality:
+          type: string
+          nullable: true
+        status:
+          type: string
+        file_count:
+          type: integer
+        total_size_bytes:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    StudyDetail:
+      allOf:
+        - $ref: '#/components/schemas/StudySummary'
+        - type: object
+          properties:
+            study_time:
+              type: string
+              nullable: true
+            study_description:
+              type: string
+              nullable: true
+            referring_physician_name:
+              type: string
+              nullable: true
+            institution_name:
+              type: string
+              nullable: true
+            forwarded_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    ForwardRequest:
+      type: object
+      required:
+        - destination_ids
+      properties:
+        destination_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        priority:
+          type: integer
+          default: 0
+
+    DestinationCreate:
+      type: object
+      required:
+        - name
+        - ae_title
+        - host
+        - port
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        ae_title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        max_pdu:
+          type: integer
+          minimum: 128
+          default: 16384
+        timeout:
+          type: integer
+          minimum: 1
+          default: 30
+        connection_timeout:
+          type: integer
+          minimum: 1
+          default: 10
+        tls_enabled:
+          type: boolean
+          default: false
+        tls_cert_path:
+          type: string
+          nullable: true
+        tls_key_path:
+          type: string
+          nullable: true
+        tls_ca_path:
+          type: string
+          nullable: true
+        tls_no_verify:
+          type: boolean
+          default: false
+        forwarding_rules:
+          type: object
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    DestinationUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        ae_title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        max_pdu:
+          type: integer
+          minimum: 128
+        timeout:
+          type: integer
+          minimum: 1
+        connection_timeout:
+          type: integer
+          minimum: 1
+        tls_enabled:
+          type: boolean
+        tls_cert_path:
+          type: string
+          nullable: true
+        tls_key_path:
+          type: string
+          nullable: true
+        tls_ca_path:
+          type: string
+          nullable: true
+        tls_no_verify:
+          type: boolean
+        forwarding_rules:
+          type: object
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        enabled:
+          type: boolean
+
+    DestinationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        ae_title:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+        max_pdu:
+          type: integer
+        timeout:
+          type: integer
+        connection_timeout:
+          type: integer
+        tls_enabled:
+          type: boolean
+        tls_cert_path:
+          type: string
+          nullable: true
+        tls_key_path:
+          type: string
+          nullable: true
+        tls_ca_path:
+          type: string
+          nullable: true
+        tls_no_verify:
+          type: boolean
+        enabled:
+          type: boolean
+        last_success_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_failure_at:
+          type: string
+          format: date-time
+          nullable: true
+        consecutive_failures:
+          type: integer
+        forwarding_rules:
+          type: object
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QueueStatsResponse:
+      type: object
+      properties:
+        pending:
+          type: integer
+        processing:
+          type: integer
+        completed:
+          type: integer
+        failed:
+          type: integer
+        dead_letter:
+          type: integer
+
+    RetryRequest:
+      type: object
+      properties:
+        job_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          nullable: true
+
+    ConfigReloadResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        config_path:
+          type: string
+
+    AuditLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+          nullable: true
+        username:
+          type: string
+          nullable: true
+        ip_address:
+          type: string
+          nullable: true
+        action:
+          type: string
+        resource_type:
+          type: string
+          nullable: true
+        resource_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+        error_message:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

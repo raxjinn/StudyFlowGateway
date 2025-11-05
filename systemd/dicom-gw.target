@@ -1,0 +1,10 @@
+[Unit]
+Description=DICOM Gateway Target
+Documentation=https://github.com/yourorg/dicom-gateway
+Requires=dicom-gw-api.service
+Wants=dicom-gw-queue-worker.service dicom-gw-forwarder-worker.service dicom-gw-dbpool-worker.service dicom-gw-scp.service
+After=dicom-gw-api.service dicom-gw-queue-worker.service dicom-gw-forwarder-worker.service dicom-gw-dbpool-worker.service dicom-gw-scp.service
+
+[Install]
+WantedBy=multi-user.target
+

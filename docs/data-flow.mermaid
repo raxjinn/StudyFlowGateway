@@ -1,0 +1,58 @@
+%% DICOM Gateway Data Flow Diagram
+
+sequenceDiagram
+    participant Client as DICOM Client
+    participant SCP as C-STORE SCP
+    participant FS as Filesystem
+    participant DB as PostgreSQL
+    participant QW as Queue Worker
+    participant FW as Forwarding Worker
+    participant SCU as C-STORE SCU
+    participant PACS as Remote PACS
+
+    Note over Client,PACS: Receiving Flow
+    Client->>SCP: C-STORE Request
+    SCP->>SCP: Validate DICOM
+    SCP->>FS: Write File (Byte-Preserving)
+    SCP->>DB: Create Job (pending)
+    DB-->>SCP: Job Created
+    SCP-->>Client: Success Response
+
+    Note over DB,PACS: Processing Flow
+    DB->>QW: LISTEN/NOTIFY (New Job)
+    QW->>DB: SELECT FOR UPDATE SKIP LOCKED
+    DB-->>QW: Job Data
+    QW->>FS: Read DICOM File
+    FS-->>QW: File Data
+    QW->>QW: Parse Metadata
+    QW->>DB: Create Study/Series/Instance
+    QW->>DB: Create Forward Jobs
+    QW->>DB: Update Job Status (completed)
+
+    Note over DB,PACS: Forwarding Flow
+    DB->>FW: Poll for Pending Jobs
+    FW->>DB: SELECT FOR UPDATE SKIP LOCKED
+    DB-->>FW: Forward Job Data
+    FW->>FS: Read DICOM File
+    FS-->>FW: File Data
+    FW->>FW: Validate Byte Integrity
+    FW->>SCU: Forward File
+    SCU->>PACS: C-STORE Request
+    PACS-->>SCU: Success Response
+    SCU-->>FW: Forward Success
+    FW->>DB: Update Job Status (completed)
+    FW->>DB: Record Metrics
+
+    Note over Client,PACS: Error Handling
+    alt Forward Failure
+        PACS-->>SCU: Error Response
+        SCU-->>FW: Forward Failed
+        FW->>DB: Update Job Status (failed)
+        FW->>DB: Increment Retry Count
+        alt Max Retries Not Reached
+            FW->>DB: Schedule Retry
+        else Max Retries Reached
+            FW->>DB: Move to Dead Letter Queue
+        end
+    end
+
