@@ -72,7 +72,6 @@ class AsyncPGPool:
             command_timeout=self.acquire_timeout,
             server_settings={
                 "application_name": "dicom_gateway",
-                "statement_cache_size": "500",  # Enable prepared statement caching
             },
         )
         logger.info(
