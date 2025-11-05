@@ -5,7 +5,7 @@ import asyncio
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 import asyncpg
-from asyncpg import Pool, Connection, Transaction
+from asyncpg import Pool, Connection
 
 from dicom_gw.config.settings import get_settings
 from dicom_gw.metrics.collector import get_metrics_collector
@@ -224,7 +224,7 @@ class AsyncPGPool:
         """Start a transaction.
         
         Yields:
-            Transaction: Database transaction
+            Connection: Database connection in transaction context
         """
         async with self.acquire() as conn:
             async with conn.transaction() as tx:
