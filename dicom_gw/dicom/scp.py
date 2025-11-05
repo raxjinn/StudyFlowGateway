@@ -395,9 +395,15 @@ class CStoreSCP:
         )
         
         # Add supported SOP classes
-        # Add verification SOP class (imported inline)
-        from pynetdicom.sop_class import VerificationSOPClass
-        self.ae.add_supported_context(VerificationSOPClass)
+        # Add verification SOP class (C-ECHO) - use UID directly
+        # VerificationSOPClass doesn't exist in newer pynetdicom versions
+        try:
+            from pynetdicom.sop_class import VerificationSOPClass
+            self.ae.add_supported_context(VerificationSOPClass)
+        except ImportError:
+            # Fallback: Use verification UID directly
+            from pynetdicom.sop_class import Verification
+            self.ae.add_supported_context(Verification)
         self.ae.add_supported_context(CTImageStorage)
         self.ae.add_supported_context(MRImageStorage)
         self.ae.add_supported_context(USImageStorage)
