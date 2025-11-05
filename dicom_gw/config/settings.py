@@ -128,10 +128,9 @@ def get_settings(config_path: Optional[Path] = None) -> Settings:
         if config_path is None:
             config_path = Path("/etc/dicom-gw/config.yaml")
         
-        # Check if DATABASE_URL is set in environment - if so, use it and skip YAML URL construction
-        env_database_url = os.getenv("DATABASE_URL")
-        if env_database_url:
-            _settings.database_url = env_database_url
+        # Check if DATABASE_URL is already set (from env files or environment)
+        # If it's set, preserve it and don't let YAML override it
+        existing_database_url = _settings.database_url
         
         if config_path.exists():
             try:
@@ -142,8 +141,9 @@ def get_settings(config_path: Optional[Path] = None) -> Settings:
                 # Merge YAML config into settings
                 # This allows environment variables to override YAML
                 if yaml_config.database:
-                    # Only construct database_url from YAML if DATABASE_URL env var is not set
-                    if not env_database_url:
+                    # Only construct database_url from YAML if DATABASE_URL is not already set
+                    # (either from env file or environment variable)
+                    if not existing_database_url or existing_database_url == "postgresql+asyncpg://dicom_gw:password@localhost:5432/dicom_gw":
                         # Use existing password from environment if available
                         db_password = os.getenv("DICOM_GW_DATABASE_PASSWORD", "")
                         if not db_password and yaml_config.database.password:
