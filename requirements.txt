@@ -8,7 +8,8 @@ pynetdicom>=2.0.0       # DICOM networking (C-STORE SCP/SCU)
 # Web Framework
 fastapi>=0.104.0        # Modern async web framework
 uvicorn[standard]>=0.24.0  # ASGI server
-pydantic>=2.5.0         # Data validation
+pydantic>=2.5.0
+pydantic[email]>=2.5.0         # Data validation
 pydantic-settings>=2.1.0  # Settings management
 
 # Database
