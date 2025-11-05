@@ -2,7 +2,13 @@
 
 import logging
 import asyncio
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # PreparedStatement is not exported by asyncpg but exists at runtime
+    PreparedStatement = Any
+else:
+    PreparedStatement = Any
 from contextlib import asynccontextmanager
 import asyncpg
 from asyncpg import Pool, Connection
@@ -49,7 +55,7 @@ class AsyncPGPool:
         self.acquire_timeout = settings.database_pool_acquire_timeout
         
         self.pool: Optional[Pool] = None
-        self._prepared_statements: Dict[str, asyncpg.PreparedStatement] = {}
+        self._prepared_statements: Dict[str, PreparedStatement] = {}
         self._lock = asyncio.Lock()
     
     async def initialize(self):
@@ -180,7 +186,7 @@ class AsyncPGPool:
                 columns=columns,
             )
     
-    async def prepare_statement(self, name: str, query: str) -> asyncpg.PreparedStatement:
+    async def prepare_statement(self, name: str, query: str) -> PreparedStatement:
         """Prepare a statement for reuse (server-side prepared statement).
         
         Args:
