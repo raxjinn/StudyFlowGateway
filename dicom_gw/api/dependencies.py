@@ -1,14 +1,69 @@
 """FastAPI dependencies for authentication and authorization."""
 
+import logging
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from dicom_gw.database.models import User
-from dicom_gw.api.routers.auth import get_current_user
+from dicom_gw.database.connection import get_db_session
+from dicom_gw.security.auth import decode_access_token
 from dicom_gw.security.rbac import Permission, has_permission, require_role, Role
+from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    """Dependency to get current authenticated user.
+    
+    Args:
+        token: JWT token from request
+    
+    Returns:
+        User database object
+    
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    
+    async for session in get_db_session():
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user or not user.enabled:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or disabled",
+            )
+        
+        # Check if account is locked
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is locked",
+            )
+        
+        return user
 
 
 async def get_current_active_user(

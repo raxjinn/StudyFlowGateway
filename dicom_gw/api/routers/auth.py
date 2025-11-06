@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, status, Request
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 
 from dicom_gw.database.connection import get_db_session
@@ -15,7 +15,7 @@ from dicom_gw.security.auth import (
     create_access_token,
 )
 from dicom_gw.security.audit import log_login_attempt, log_user_action, log_audit_event
-from dicom_gw.api.dependencies import RequireAdmin
+from dicom_gw.api.dependencies import RequireAdmin, get_current_user
 from sqlalchemy import select
 from uuid import UUID
 
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# Note: oauth2_scheme and get_current_user are now in dicom_gw.api.dependencies
+# to avoid circular imports
 
 
 class TokenResponse(BaseModel):
@@ -70,57 +70,6 @@ class PasswordChange(BaseModel):
     """Password change request model."""
     current_password: str
     new_password: str
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    """Dependency to get current authenticated user.
-    
-    Args:
-        token: JWT token from request
-    
-    Returns:
-        User database object
-    
-    Raises:
-        HTTPException: If token is invalid or user not found
-    """
-    from dicom_gw.security.auth import decode_access_token
-    
-    payload = decode_access_token(token)
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload",
-        )
-    
-    async for session in get_db_session():
-        result = await session.execute(
-            select(User).where(User.id == user_id)
-        )
-        user = result.scalar_one_or_none()
-        
-        if not user or not user.enabled:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found or disabled",
-            )
-        
-        # Check if account is locked
-        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account is locked",
-            )
-        
-        return user
 
 
 @router.post("/auth/login", response_model=TokenResponse)
