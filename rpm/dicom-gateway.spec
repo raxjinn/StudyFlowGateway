@@ -286,9 +286,28 @@ fi
 %{_unitdir}/dicom-gw-forwarder-worker@.service
 %{_unitdir}/dicom-gw-dbpool-worker@.service
 
-# Scripts (only include if directory exists)
+# Scripts
 %dir %{app_path}/scripts
+%{app_path}/scripts/build-rpm.sh
+%{app_path}/scripts/check-rpm-build.sh
+%{app_path}/scripts/check-user.sh
+%{app_path}/scripts/cleanup-storage.sh
+%{app_path}/scripts/create-admin-user.sh
+%{app_path}/scripts/debug-settings.sh
+%{app_path}/scripts/generate-encryption-key.sh
+%{app_path}/scripts/generate-self-signed-cert.sh
+%{app_path}/scripts/install-systemd-services.sh
+%{app_path}/scripts/reset-admin-password.sh
 %{app_path}/scripts/scale-workers.sh
+%{app_path}/scripts/setup-build-deps.sh
+%{app_path}/scripts/setup-letsencrypt.sh
+%{app_path}/scripts/setup-luks-encryption.sh
+%{app_path}/scripts/setup-nginx.sh
+%{app_path}/scripts/setup-storage-layout.sh
+%{app_path}/scripts/test-db-connection.sh
+%{app_path}/scripts/unlock-user.sh
+%{app_path}/scripts/verify-rpm-contents.sh
+%{app_path}/scripts/verify-storage-layout.sh
 
 # Nginx configuration
 %config(noreplace) %{_sysconfdir}/nginx/conf.d/dicom-gateway.conf
