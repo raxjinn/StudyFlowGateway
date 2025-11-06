@@ -94,7 +94,7 @@ if [ ! -f %{buildroot}%{config_path}/config.yaml ]; then
     cp config/config.yaml.example %{buildroot}%{config_path}/config.yaml
 fi
 
-# Copy systemd service files
+# Copy systemd service files (including template files for scaling)
 cp systemd/*.service %{buildroot}%{_unitdir}/
 cp systemd/*.target %{buildroot}%{_unitdir}/
 
@@ -103,6 +103,10 @@ cp nginx/dicom-gateway.conf %{buildroot}%{_sysconfdir}/nginx/conf.d/
 
 # Copy logrotate configuration
 cp rpm/logrotate.conf %{buildroot}%{_sysconfdir}/logrotate.d/dicom-gateway
+
+# Copy scripts
+cp scripts/*.sh %{buildroot}%{app_path}/scripts/ 2>/dev/null || true
+chmod +x %{buildroot}%{app_path}/scripts/*.sh 2>/dev/null || true
 
 # Copy documentation
 cp -r docs/* %{buildroot}%{_docdir}/%{name}-%{version}/ 2>/dev/null || true
@@ -148,6 +152,7 @@ chown -R %{service_user}:%{service_user} %{log_path}
 mkdir -p %{data_path}/storage
 mkdir -p %{data_path}/incoming
 mkdir -p %{data_path}/queue
+mkdir -p %{app_path}/scripts
 mkdir -p %{data_path}/forwarded
 mkdir -p %{data_path}/failed
 mkdir -p %{data_path}/tmp
@@ -258,6 +263,14 @@ fi
 %{_unitdir}/dicom-gw-dbpool-worker.service
 %{_unitdir}/dicom-gw-scp.service
 %{_unitdir}/dicom-gw.target
+# Template service files for horizontal scaling
+%{_unitdir}/dicom-gw-queue-worker@.service
+%{_unitdir}/dicom-gw-forwarder-worker@.service
+%{_unitdir}/dicom-gw-dbpool-worker@.service
+
+# Scripts
+%dir %{app_path}/scripts
+%{app_path}/scripts/*.sh
 
 # Nginx configuration
 %config(noreplace) %{_sysconfdir}/nginx/conf.d/dicom-gateway.conf
