@@ -246,32 +246,58 @@ async def login(
         
         # Create access token and log audit outside session context (success case)
         if login_success:
+            if not user_id or not username_for_audit or not user_role:
+                logger.error("Login succeeded but user data is incomplete: user_id=%s, username=%s, role=%s", 
+                           user_id, username_for_audit, user_role)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="An error occurred during login",
+                )
+            
             from dicom_gw.config.settings import get_settings
             
-            settings = get_settings()
-            access_token = create_access_token(
-                data={
-                    "sub": user_id,
-                    "username": username_for_audit,
-                    "role": user_role,
-                },
-                expires_delta=timedelta(hours=settings.jwt_expiration_hours),
-            )
+            try:
+                settings = get_settings()
+                access_token = create_access_token(
+                    data={
+                        "sub": user_id,
+                        "username": username_for_audit,
+                        "role": user_role,
+                    },
+                    expires_delta=timedelta(hours=settings.jwt_expiration_hours),
+                )
+            except Exception as token_error:
+                logger.error("Failed to create access token: %s", token_error, exc_info=True)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="An error occurred during login",
+                )
             
             # Log successful login (outside session context)
-            await log_login_attempt(
-                username=username_for_audit,
-                success=True,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                user_id=user_id,
-            )
+            try:
+                await log_login_attempt(
+                    username=username_for_audit,
+                    success=True,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    user_id=user_id,
+                )
+            except Exception as log_error:
+                # Don't fail on audit logging errors, but log them
+                logger.error("Failed to log successful login attempt: %s", log_error)
             
             return TokenResponse(
                 access_token=access_token,
                 token_type="bearer",
                 expires_in=settings.jwt_expiration_hours * 3600,
             )
+        
+        # If we get here without login_success or error_message, something went wrong
+        logger.error("Login function reached end without success or error message")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during login",
+        )
     
     except HTTPException:
         # Re-raise HTTP exceptions
