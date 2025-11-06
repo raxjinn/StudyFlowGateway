@@ -14,8 +14,10 @@ from dicom_gw.security.auth import (
     verify_password,
     create_access_token,
 )
-from dicom_gw.security.audit import log_login_attempt
+from dicom_gw.security.audit import log_login_attempt, log_user_action, log_audit_event
+from dicom_gw.api.dependencies import RequireAdmin
 from sqlalchemy import select
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -363,4 +365,239 @@ async def logout(current_user: User = Depends(get_current_user)):  # pylint: dis
     # In a stateless JWT system, logout is handled client-side
     # Optionally, we could implement a token blacklist here
     return {"status": "success", "message": "Logged out successfully"}
+
+
+# User Management Endpoints (Admin only)
+@router.get("/auth/users", response_model=list[UserResponse])
+async def list_users(
+    current_user: User = Depends(RequireAdmin),  # noqa: ARG001
+    skip: int = 0,
+    limit: int = 100,
+):
+    """List all users (admin only)."""
+    async for session in get_db_session():
+        result = await session.execute(
+            select(User).offset(skip).limit(limit).order_by(User.username)
+        )
+        users = result.scalars().all()
+        return [UserResponse.model_validate(user) for user in users]
+
+
+@router.post("/auth/users", response_model=UserResponse)
+async def create_user(
+    user_data: UserCreate,
+    current_user: User = Depends(RequireAdmin),
+):
+    """Create a new user (admin only)."""
+    async for session in get_db_session():
+        # Check if username already exists
+        result = await session.execute(
+            select(User).where(User.username == user_data.username)
+        )
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already exists",
+            )
+        
+        # Check if email already exists (if provided)
+        if user_data.email:
+            result = await session.execute(
+                select(User).where(User.email == user_data.email)
+            )
+            existing_email = result.scalar_one_or_none()
+            
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already exists",
+                )
+        
+        # Validate role
+        valid_roles = ["admin", "operator", "user", "viewer"]
+        if user_data.role not in valid_roles:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
+            )
+        
+        # Create new user
+        new_user = User(
+            username=user_data.username,
+            email=user_data.email,
+            password_hash=hash_password(user_data.password),
+            role=user_data.role,
+            full_name=user_data.full_name,
+            enabled=True,
+        )
+        
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+        
+        # Log user creation
+        await log_user_action(
+            action="create_user",
+            user_id=str(current_user.id),
+            username=current_user.username,
+            target_user_id=str(new_user.id),
+            target_username=new_user.username,
+        )
+        
+        return UserResponse.model_validate(new_user)
+
+
+@router.get("/auth/users/{user_id}", response_model=UserResponse)
+async def get_user(
+    user_id: UUID,
+    current_user: User = Depends(RequireAdmin),  # noqa: ARG001
+):
+    """Get a user by ID (admin only)."""
+    async for session in get_db_session():
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        return UserResponse.model_validate(user)
+
+
+@router.put("/auth/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: UUID,
+    user_data: UserUpdate,
+    current_user: User = Depends(RequireAdmin),
+):
+    """Update a user (admin only)."""
+    async for session in get_db_session():
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        # Store original values for audit log
+        original_values = {
+            "email": user.email,
+            "role": user.role,
+            "full_name": user.full_name,
+            "enabled": user.enabled,
+        }
+        
+        # Update fields if provided
+        if user_data.email is not None:
+            # Check if email is already taken by another user
+            if user_data.email != user.email:
+                email_result = await session.execute(
+                    select(User).where(User.email == user_data.email)
+                )
+                existing_email = email_result.scalar_one_or_none()
+                
+                if existing_email:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Email already exists",
+                    )
+            user.email = user_data.email
+        
+        if user_data.password is not None:
+            user.password_hash = hash_password(user_data.password)
+            # Unlock account and reset failed attempts when password is reset
+            user.locked_until = None
+            user.failed_login_attempts = 0
+        
+        if user_data.role is not None:
+            valid_roles = ["admin", "operator", "user", "viewer"]
+            if user_data.role not in valid_roles:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}",
+                )
+            user.role = user_data.role
+        
+        if user_data.full_name is not None:
+            user.full_name = user_data.full_name
+        
+        if user_data.enabled is not None:
+            user.enabled = user_data.enabled
+            # Unlock account when enabling
+            if user_data.enabled:
+                user.locked_until = None
+                user.failed_login_attempts = 0
+        
+        await session.commit()
+        await session.refresh(user)
+        
+        # Log user update
+        changes = {k: v for k, v in user_data.model_dump(exclude_unset=True).items() if k != "password"}
+        await log_audit_event(
+            action="update_user",
+            user_id=str(current_user.id),
+            username=current_user.username,
+            resource_type="user",
+            resource_id=str(user.id),
+            metadata={
+                "original": original_values,
+                "changes": changes,
+            },
+        )
+        
+        return UserResponse.model_validate(user)
+
+
+@router.delete("/auth/users/{user_id}")
+async def delete_user(
+    user_id: UUID,
+    current_user: User = Depends(RequireAdmin),
+):
+    """Delete a user (admin only)."""
+    async for session in get_db_session():
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        
+        # Prevent deleting yourself
+        if user.id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete your own account",
+            )
+        
+        username = user.username
+        user_role = user.role
+        
+        # Delete user
+        await session.delete(user)
+        await session.commit()
+        
+        # Log user deletion
+        await log_user_action(
+            action="delete_user",
+            user_id=str(current_user.id),
+            username=current_user.username,
+            target_user_id=str(user_id),
+            target_username=username,
+        )
+        
+        return {"status": "success", "message": f"User '{username}' deleted successfully"}
 

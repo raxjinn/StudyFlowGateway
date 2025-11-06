@@ -18,7 +18,13 @@ export const authAPI = {
       current_password: currentPassword,
       new_password: newPassword
     })
-  }
+  },
+  // User Management (Admin only)
+  listUsers: (params = {}) => apiClient.get('/auth/users', { params }),
+  getUser: (id) => apiClient.get(`/auth/users/${id}`),
+  createUser: (data) => apiClient.post('/auth/users', data),
+  updateUser: (id, data) => apiClient.put(`/auth/users/${id}`, data),
+  deleteUser: (id) => apiClient.delete(`/auth/users/${id}`)
 }
 
 // Health
@@ -78,7 +84,15 @@ export const auditAPI = {
 
 // Config
 export const configAPI = {
+  get: () => apiClient.get('/config'),
   reload: () => apiClient.post('/config/reload'),
+  upload: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post('/config/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
   uploadCert: (certFile, keyFile, caFile = null) => {
     const formData = new FormData()
     formData.append('cert_file', certFile)
@@ -89,6 +103,20 @@ export const configAPI = {
     return apiClient.post('/certs/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
+  },
+  getCertInfo: () => apiClient.get('/certs/info'),
+  provisionLetsEncrypt: (domain, email, webrootPath = null, staging = false) => {
+    const formData = new FormData()
+    formData.append('domain', domain)
+    formData.append('email', email)
+    if (webrootPath) {
+      formData.append('webroot_path', webrootPath)
+    }
+    formData.append('staging', staging)
+    return apiClient.post('/certs/letsencrypt/provision', formData)
+  },
+  renewLetsEncrypt: (domain = null) => {
+    return apiClient.post('/certs/letsencrypt/renew', { domain })
   }
 }
 

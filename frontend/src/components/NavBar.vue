@@ -43,6 +43,14 @@
             >
               Settings
             </router-link>
+            <router-link
+              v-if="authStore.isAdmin"
+              to="/users"
+              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
+              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+            >
+              Users
+            </router-link>
           </div>
         </div>
         
