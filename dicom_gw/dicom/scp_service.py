@@ -67,9 +67,10 @@ class CStoreSCPService:
         self.start()
         
         try:
-            # Keep running
+            # Keep running - use time.sleep instead of asyncio.sleep for blocking loop
+            import time
             while self.running:
-                asyncio.sleep(1)
+                time.sleep(1)
         except KeyboardInterrupt:
             logger.info("Keyboard interrupt received, shutting down...")
             self.stop()
