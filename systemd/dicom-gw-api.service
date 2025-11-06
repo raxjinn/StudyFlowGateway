@@ -26,6 +26,7 @@ ExecStart=/opt/dicom-gw/venv/bin/uvicorn \
     --use-colors
 
 # Graceful shutdown
+TimeoutStartSec=90
 TimeoutStopSec=30
 KillMode=mixed
 KillSignal=SIGTERM
