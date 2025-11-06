@@ -101,6 +101,7 @@ cp systemd/dicom-gw-queue-worker.service %{buildroot}%{_unitdir}/
 cp systemd/dicom-gw-forwarder-worker.service %{buildroot}%{_unitdir}/
 cp systemd/dicom-gw-dbpool-worker.service %{buildroot}%{_unitdir}/
 cp systemd/dicom-gw-scp.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-autoscaler.service %{buildroot}%{_unitdir}/
 # Copy template service files for horizontal scaling
 cp systemd/dicom-gw-queue-worker@.service %{buildroot}%{_unitdir}/
 cp systemd/dicom-gw-forwarder-worker@.service %{buildroot}%{_unitdir}/
@@ -280,6 +281,7 @@ fi
 %{_unitdir}/dicom-gw-forwarder-worker.service
 %{_unitdir}/dicom-gw-dbpool-worker.service
 %{_unitdir}/dicom-gw-scp.service
+%{_unitdir}/dicom-gw-autoscaler.service
 %{_unitdir}/dicom-gw.target
 # Template service files for horizontal scaling
 %{_unitdir}/dicom-gw-queue-worker@.service

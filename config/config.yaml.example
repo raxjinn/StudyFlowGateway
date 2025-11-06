@@ -69,6 +69,22 @@ workers:
   forwarder_worker_batch_size: 5
   dbpool_worker_flush_interval: 10.0
   dbpool_worker_batch_size: 100
+  
+  # Autoscaler configuration (automatic worker scaling)
+  autoscaler_enabled: true
+  autoscaler_check_interval: 30.0  # Check every 30 seconds
+  autoscaler_scale_up_threshold_pending: 50  # Scale up when pending jobs >= 50
+  autoscaler_scale_up_threshold_processing: 10  # Scale up when processing jobs >= 10
+  autoscaler_scale_down_threshold_pending: 5  # Scale down when pending jobs <= 5
+  autoscaler_scale_down_threshold_processing: 2  # Scale down when processing jobs <= 2
+  autoscaler_min_workers_queue: 1  # Minimum queue workers
+  autoscaler_min_workers_forwarder: 1  # Minimum forwarder workers
+  autoscaler_min_workers_dbpool: 1  # Minimum dbpool workers
+  autoscaler_max_workers_queue: 10  # Maximum queue workers
+  autoscaler_max_workers_forwarder: 20  # Maximum forwarder workers
+  autoscaler_max_workers_dbpool: 5  # Maximum dbpool workers
+  autoscaler_scale_up_cooldown: 60  # Wait 60 seconds before scaling up again
+  autoscaler_scale_down_cooldown: 300  # Wait 5 minutes before scaling down again
 
 destinations:
   - name: "PACS_Archive"

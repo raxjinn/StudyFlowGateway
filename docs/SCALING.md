@@ -2,6 +2,60 @@
 
 The DICOM Gateway is designed for horizontal scaling to handle large volumes of studies. This guide explains how to scale the system to meet your throughput requirements.
 
+## Automatic Scaling (Recommended)
+
+The gateway includes an **automatic worker autoscaler** that monitors queue depth and worker utilization, automatically scaling workers up and down based on load. This is enabled by default and requires no manual intervention.
+
+### How Autoscaling Works
+
+1. **Monitoring**: The autoscaler checks queue depth every 30 seconds (configurable)
+2. **Scale Up**: When pending jobs exceed thresholds, new worker instances are automatically started
+3. **Scale Down**: When queues are empty, idle workers are automatically stopped
+4. **Cooldowns**: Prevents rapid scaling up/down with configurable cooldown periods
+5. **Min/Max Limits**: Respects configured minimum and maximum worker counts
+
+### Enabling/Disabling Autoscaling
+
+Autoscaling is **enabled by default**. To disable it:
+
+```yaml
+# In /etc/dicom-gw/config.yaml
+workers:
+  autoscaler_enabled: false
+```
+
+Then restart the autoscaler service:
+```bash
+sudo systemctl restart dicom-gw-autoscaler.service
+```
+
+### Autoscaling Configuration
+
+Configure autoscaling in `/etc/dicom-gw/config.yaml`:
+
+```yaml
+workers:
+  # Autoscaler settings
+  autoscaler_enabled: true
+  autoscaler_check_interval: 30.0  # Check every 30 seconds
+  autoscaler_scale_up_threshold_pending: 50  # Scale up when >= 50 pending jobs
+  autoscaler_scale_up_threshold_processing: 10  # Scale up when >= 10 processing jobs
+  autoscaler_scale_down_threshold_pending: 5  # Scale down when <= 5 pending jobs
+  autoscaler_scale_down_threshold_processing: 2  # Scale down when <= 2 processing jobs
+  autoscaler_min_workers_queue: 1  # Always keep at least 1 queue worker
+  autoscaler_min_workers_forwarder: 1  # Always keep at least 1 forwarder worker
+  autoscaler_min_workers_dbpool: 1  # Always keep at least 1 dbpool worker
+  autoscaler_max_workers_queue: 10  # Never exceed 10 queue workers
+  autoscaler_max_workers_forwarder: 20  # Never exceed 20 forwarder workers
+  autoscaler_max_workers_dbpool: 5  # Never exceed 5 dbpool workers
+  autoscaler_scale_up_cooldown: 60  # Wait 60s before scaling up again
+  autoscaler_scale_down_cooldown: 300  # Wait 5min before scaling down again
+```
+
+## Manual Scaling (Alternative)
+
+If you prefer manual control over worker scaling, you can disable autoscaling and use manual commands.
+
 ## Architecture Overview
 
 The gateway uses a **PostgreSQL-backed job queue** with **SKIP LOCKED** pattern, which allows multiple worker instances to process jobs concurrently without conflicts. This enables true horizontal scaling.
@@ -34,9 +88,9 @@ The gateway uses a **PostgreSQL-backed job queue** with **SKIP LOCKED** pattern,
 - **Default**: 1 instance
 - **Scales to**: 3-5 instances (database write bound)
 
-## Scaling Methods
+## Manual Scaling Methods (If Autoscaling is Disabled)
 
-### Method 1: Using Template Services (Recommended)
+### Method 1: Using Template Services
 
 The gateway includes systemd template unit files (`@.service`) that allow easy horizontal scaling:
 

@@ -88,6 +88,22 @@ class WorkerConfig(BaseModel):
     forwarder_worker_batch_size: int = 5
     dbpool_worker_flush_interval: float = 10.0
     dbpool_worker_batch_size: int = 100
+    
+    # Autoscaler configuration
+    autoscaler_enabled: bool = True
+    autoscaler_check_interval: float = 30.0
+    autoscaler_scale_up_threshold_pending: int = 50
+    autoscaler_scale_up_threshold_processing: int = 10
+    autoscaler_scale_down_threshold_pending: int = 5
+    autoscaler_scale_down_threshold_processing: int = 2
+    autoscaler_min_workers_queue: int = 1
+    autoscaler_min_workers_forwarder: int = 1
+    autoscaler_min_workers_dbpool: int = 1
+    autoscaler_max_workers_queue: int = 10
+    autoscaler_max_workers_forwarder: int = 20
+    autoscaler_max_workers_dbpool: int = 5
+    autoscaler_scale_up_cooldown: int = 60
+    autoscaler_scale_down_cooldown: int = 300
 
 
 class DestinationConfig(BaseModel):
