@@ -116,10 +116,13 @@ cp rpm/logrotate.conf %{buildroot}%{_sysconfdir}/logrotate.d/dicom-gateway
 
 # Copy scripts (create directory first)
 mkdir -p %{buildroot}%{app_path}/scripts
-if [ -d scripts ] && [ "$(ls -A scripts/*.sh 2>/dev/null)" ]; then
-    cp scripts/*.sh %{buildroot}%{app_path}/scripts/
-    chmod +x %{buildroot}%{app_path}/scripts/*.sh
-fi
+# Explicitly copy each script file (if it exists)
+for script in scripts/*.sh; do
+    if [ -f "$script" ]; then
+        cp "$script" %{buildroot}%{app_path}/scripts/
+        chmod +x %{buildroot}%{app_path}/scripts/$(basename "$script")
+    fi
+done
 
 # Copy documentation
 cp -r docs/* %{buildroot}%{_docdir}/%{name}-%{version}/ 2>/dev/null || true
