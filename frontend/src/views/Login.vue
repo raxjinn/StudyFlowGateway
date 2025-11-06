@@ -59,15 +59,31 @@ const handleLogin = async () => {
   error.value = ''
   loading.value = true
   
-  const result = await authStore.login(username.value, password.value)
-  
-  if (result.success) {
-    router.push('/dashboard')
-  } else {
-    error.value = result.error || 'Login failed'
+  try {
+    const result = await authStore.login(username.value, password.value)
+    
+    if (result.success) {
+      router.push('/dashboard')
+    } else {
+      error.value = result.error || 'Login failed'
+      // Keep error visible for at least 3 seconds
+      setTimeout(() => {
+        if (error.value === result.error) {
+          error.value = ''
+        }
+      }, 3000)
+    }
+  } catch (err) {
+    error.value = err.response?.data?.detail || err.message || 'Login failed. Please check your credentials.'
+    // Keep error visible for at least 3 seconds
+    setTimeout(() => {
+      if (error.value === err.response?.data?.detail || err.message) {
+        error.value = ''
+      }
+    }, 3000)
+  } finally {
+    loading.value = false
   }
-  
-  loading.value = false
 }
 </script>
 

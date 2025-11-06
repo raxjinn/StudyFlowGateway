@@ -1,7 +1,7 @@
 """Authentication endpoints."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -112,7 +112,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             )
         
         # Check if account is locked
-        if user.locked_until and user.locked_until > datetime.utcnow():
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is locked",
@@ -146,7 +146,7 @@ async def login(
             )
         
         # Check if account is locked
-        if user.locked_until and user.locked_until > datetime.utcnow():
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is locked",
@@ -166,7 +166,7 @@ async def login(
             
             # Lock account after 5 failed attempts for 30 minutes
             if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.utcnow() + timedelta(minutes=30)
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
                 logger.warning("Account locked due to failed login attempts: %s", user.username)
             
             await session.commit()
@@ -189,7 +189,7 @@ async def login(
         # Successful login - reset failed attempts
         user.failed_login_attempts = 0
         user.locked_until = None
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
         await session.commit()
         
         # Create access token

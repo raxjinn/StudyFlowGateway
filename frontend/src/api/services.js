@@ -3,11 +3,12 @@ import apiClient from './client'
 // Auth
 export const authAPI = {
   login: (username, password) => {
-    const formData = new FormData()
-    formData.append('username', username)
-    formData.append('password', password)
-    return apiClient.post('/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    // OAuth2PasswordRequestForm expects application/x-www-form-urlencoded
+    const params = new URLSearchParams()
+    params.append('username', username)
+    params.append('password', password)
+    return apiClient.post('/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
   },
   logout: () => apiClient.post('/auth/logout'),
