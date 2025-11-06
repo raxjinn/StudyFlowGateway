@@ -1,8 +1,8 @@
 <template>
-  <div class="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-primary-50 to-accent-50 dark:from-gray-900 dark:to-gray-800">
-    <div class="card max-w-md w-full shadow-xl">
+  <div class="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-accent-800 to-accent-900">
+    <div class="card max-w-md w-full shadow-xl bg-white dark:bg-accent-800">
       <div class="text-center mb-6">
-        <h1 class="text-3xl font-bold text-primary-700 dark:text-primary-400 mb-2">DICOM Gateway</h1>
+        <h1 class="text-3xl font-bold text-primary-600 dark:text-primary-500 mb-2">DICOM Gateway</h1>
         <p class="text-gray-600 dark:text-gray-400">Sign in to your account</p>
       </div>
       

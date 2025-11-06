@@ -76,7 +76,7 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
               <button
                 @click="editUser(user)"
-                class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+                class="text-primary-600 hover:text-primary-700 dark:text-primary-500 dark:hover:text-primary-400 font-medium transition-colors"
               >
                 Edit
               </button>
