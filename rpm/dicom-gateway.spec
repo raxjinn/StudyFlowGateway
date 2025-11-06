@@ -69,6 +69,8 @@ Features:
 %install
 # Create directories
 mkdir -p %{buildroot}%{app_path}
+# Debug: Show current directory (remove after debugging)
+echo "Current directory in %install: $(pwd)" || true
 mkdir -p %{buildroot}%{config_path}
 mkdir -p %{buildroot}%{config_path}/tls
 mkdir -p %{buildroot}%{data_path}
@@ -171,7 +173,6 @@ chown -R %{service_user}:%{service_user} %{log_path}
 mkdir -p %{data_path}/storage
 mkdir -p %{data_path}/incoming
 mkdir -p %{data_path}/queue
-# Note: scripts directory is created in %install section
 mkdir -p %{data_path}/forwarded
 mkdir -p %{data_path}/failed
 mkdir -p %{data_path}/tmp
