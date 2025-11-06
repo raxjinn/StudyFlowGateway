@@ -69,8 +69,6 @@ Features:
 %install
 # Create directories
 mkdir -p %{buildroot}%{app_path}
-# Debug: Show current directory (remove after debugging)
-echo "Current directory in %install: $(pwd)" || true
 mkdir -p %{buildroot}%{config_path}
 mkdir -p %{buildroot}%{config_path}/tls
 mkdir -p %{buildroot}%{data_path}
