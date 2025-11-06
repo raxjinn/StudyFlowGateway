@@ -296,7 +296,7 @@ class ForwarderWorker:
                         current_job.error_message = error_msg
                     else:
                         current_job.status = "dead_letter"
-                        current_job.completed_at = datetime.utcnow()
+                        current_job.completed_at = datetime.now(timezone.utc)
                         current_job.error_message = error_msg
                     
                     await session.commit()
