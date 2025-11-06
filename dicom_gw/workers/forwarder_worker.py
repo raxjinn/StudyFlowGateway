@@ -182,7 +182,7 @@ class ForwarderWorker:
                 if result.success:
                     # Success
                     current_job.status = "completed"
-                    current_job.completed_at = datetime.utcnow()
+                    current_job.completed_at = datetime.now(timezone.utc)
                     current_job.error_message = None
                     current_job.duration_ms = result.duration_ms
                     
@@ -244,7 +244,7 @@ class ForwarderWorker:
                     else:
                         # Move to dead letter queue
                         current_job.status = "dead_letter"
-                        current_job.completed_at = datetime.utcnow()
+                        current_job.completed_at = datetime.now(timezone.utc)
                         current_job.error_message = result.error_message
                         
                         # Update destination stats
