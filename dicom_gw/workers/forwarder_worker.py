@@ -10,7 +10,7 @@ import signal
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,9 @@ class ForwarderWorker:
             poll_interval: Seconds between polls when no jobs available
             batch_size: Maximum jobs to process in one batch
         """
-        self.worker_id = worker_id or f"forwarder-worker-{asyncio.get_event_loop().time()}"
+        # Generate worker ID - use time.time() instead of asyncio.get_event_loop().time()
+        import time
+        self.worker_id = worker_id or f"forwarder-worker-{time.time()}"
         self.poll_interval = poll_interval
         self.batch_size = batch_size
         self.forwarder = Forwarder()
@@ -60,7 +62,7 @@ class ForwarderWorker:
     async def start(self):
         """Start the forwarding worker."""
         self.running = True
-        self.stats["started_at"] = datetime.utcnow()
+        self.stats["started_at"] = datetime.now(timezone.utc)
         
         logger.info("Starting forwarding worker: %s", self.worker_id)
         
@@ -113,7 +115,7 @@ class ForwarderWorker:
             result = await session.execute(
                 select(ForwardJob)
                 .where(ForwardJob.status == "pending")
-                .where(ForwardJob.available_at <= datetime.utcnow())
+                .where(ForwardJob.available_at <= datetime.now(timezone.utc))
                 .where(ForwardJob.destination.has(Destination.enabled == True))  # noqa: E712
                 .order_by(ForwardJob.priority.desc(), ForwardJob.created_at.asc())
                 .limit(self.batch_size)
@@ -130,7 +132,7 @@ class ForwarderWorker:
                     .where(ForwardJob.id.in_(job_ids))
                     .values(
                         status="processing",
-                        started_at=datetime.utcnow(),
+                        started_at=datetime.now(timezone.utc),
                         attempts=ForwardJob.attempts + 1,
                     )
                 )
@@ -191,12 +193,12 @@ class ForwarderWorker:
                     # Update study status
                     if current_job.study:
                         current_job.study.status = "forwarded"
-                        current_job.study.forwarded_at = datetime.utcnow()
+                        current_job.study.forwarded_at = datetime.now(timezone.utc)
                     
                     # Update destination stats
                     destination_name = "unknown"
                     if current_job.destination:
-                        current_job.destination.last_success_at = datetime.utcnow()
+                        current_job.destination.last_success_at = datetime.now(timezone.utc)
                         current_job.destination.consecutive_failures = 0
                         destination_name = current_job.destination.name
                     
@@ -228,7 +230,7 @@ class ForwarderWorker:
                         # Calculate retry delay (exponential backoff)
                         backoff_seconds = 2 ** (current_job.attempts - 1)  # 1, 2, 4, 8, ...
                         current_job.status = "pending"
-                        current_job.available_at = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+                        current_job.available_at = datetime.now(timezone.utc) + timedelta(seconds=backoff_seconds)
                         current_job.retry_after = current_job.available_at
                         current_job.error_message = result.error_message
                         
@@ -248,7 +250,7 @@ class ForwarderWorker:
                         # Update destination stats
                         destination_name = "unknown"
                         if current_job.destination:
-                            current_job.destination.last_failure_at = datetime.utcnow()
+                            current_job.destination.last_failure_at = datetime.now(timezone.utc)
                             current_job.destination.consecutive_failures += 1
                             destination_name = current_job.destination.name
                         
@@ -290,7 +292,7 @@ class ForwarderWorker:
                     if should_retry:
                         backoff_seconds = 2 ** (current_job.attempts - 1)
                         current_job.status = "pending"
-                        current_job.available_at = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+                        current_job.available_at = datetime.now(timezone.utc) + timedelta(seconds=backoff_seconds)
                         current_job.error_message = error_msg
                     else:
                         current_job.status = "dead_letter"
@@ -310,7 +312,7 @@ class ForwarderWorker:
         Args:
             timeout_minutes: Minutes after which a processing job is considered stale
         """
-        timeout = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+        timeout = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
         
         async for session in get_db_session():
             result = await session.execute(
@@ -337,7 +339,7 @@ class ForwarderWorker:
         """
         uptime_seconds = 0
         if self.stats["started_at"]:
-            uptime_seconds = (datetime.utcnow() - self.stats["started_at"]).total_seconds()
+            uptime_seconds = (datetime.now(timezone.utc) - self.stats["started_at"]).total_seconds()
         
         # Update metrics
         metrics = get_metrics_collector()

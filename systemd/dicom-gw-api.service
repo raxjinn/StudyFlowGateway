@@ -5,7 +5,7 @@ Wants=postgresql.service
 Documentation=https://github.com/yourorg/dicom-gateway
 
 [Service]
-Type=notify
+Type=simple
 User=dicom-gw
 Group=dicom-gw
 WorkingDirectory=/opt/dicom-gw

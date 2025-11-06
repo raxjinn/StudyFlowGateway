@@ -12,7 +12,7 @@ import signal
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dicom_gw.queue.job_queue import JobQueue, JobResult
 from dicom_gw.dicom.io import parse_dicom_metadata, get_dicom_tags
@@ -42,7 +42,9 @@ class QueueWorker:
             poll_interval: Seconds between queue polls when no jobs available
             batch_size: Maximum jobs to process in one batch
         """
-        self.worker_id = worker_id or f"queue-worker-{asyncio.get_event_loop().time()}"
+        # Generate worker ID - use time.time() instead of asyncio.get_event_loop().time()
+        import time
+        self.worker_id = worker_id or f"queue-worker-{time.time()}"
         self.poll_interval = poll_interval
         self.batch_size = batch_size
         self.queue = JobQueue(worker_id=self.worker_id)
@@ -66,7 +68,7 @@ class QueueWorker:
     async def start(self):
         """Start the queue worker."""
         self.running = True
-        self.stats["started_at"] = datetime.utcnow()
+        self.stats["started_at"] = datetime.now(timezone.utc)
         
         logger.info("Starting queue worker: %s", self.worker_id)
         
@@ -332,7 +334,7 @@ class QueueWorker:
             "series_instance_uid": series_instance_uid,
             "sop_instance_uid": sop_instance_uid,
             "file_path": str(file_path),
-            "processed_at": datetime.utcnow().isoformat(),
+            "processed_at": datetime.now(timezone.utc).isoformat(),
         }
     
     async def _handle_extract_metadata(self, job: JobResult) -> Dict[str, Any]:
@@ -409,7 +411,7 @@ class QueueWorker:
         return {
             "study_instance_uid": study_instance_uid,
             "forward_job_ids": forward_job_ids,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
     
     async def _cleanup_stale_jobs_periodic(self):
@@ -431,7 +433,7 @@ class QueueWorker:
         """
         uptime_seconds = 0
         if self.stats["started_at"]:
-            uptime_seconds = (datetime.utcnow() - self.stats["started_at"]).total_seconds()
+            uptime_seconds = (datetime.now(timezone.utc) - self.stats["started_at"]).total_seconds()
         
         # Update metrics
         metrics = get_metrics_collector()

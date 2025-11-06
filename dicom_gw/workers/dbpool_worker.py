@@ -402,7 +402,7 @@ class DBPoolWorker:
         """
         uptime_seconds = 0
         if self.stats["started_at"]:
-            uptime_seconds = (datetime.utcnow() - self.stats["started_at"]).total_seconds()
+            uptime_seconds = (datetime.now(timezone.utc) - self.stats["started_at"]).total_seconds()
         
         pending_records = sum(len(batch.records) for batch in self.batches.values())
         
