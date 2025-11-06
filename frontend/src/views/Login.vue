@@ -1,7 +1,10 @@
 <template>
-  <div class="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-    <div class="card max-w-md w-full">
-      <h1 class="text-2xl font-bold text-center mb-6">Login</h1>
+  <div class="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-gradient-to-br from-primary-50 to-accent-50 dark:from-gray-900 dark:to-gray-800">
+    <div class="card max-w-md w-full shadow-xl">
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-primary-700 dark:text-primary-400 mb-2">DICOM Gateway</h1>
+        <p class="text-gray-600 dark:text-gray-400">Sign in to your account</p>
+      </div>
       
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>

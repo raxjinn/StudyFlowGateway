@@ -60,13 +60,13 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
               <button
                 @click="editDestination(dest)"
-                class="text-primary-600 hover:text-primary-800 dark:text-primary-400"
+                class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
               >
                 Edit
               </button>
               <button
                 @click="deleteDestination(dest.id)"
-                class="text-red-600 hover:text-red-800 dark:text-red-400"
+                class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
               >
                 Delete
               </button>

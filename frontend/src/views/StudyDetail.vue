@@ -2,7 +2,7 @@
   <div class="space-y-6" v-if="study">
     <div class="flex justify-between items-center">
       <div>
-        <router-link to="/studies" class="text-primary-600 hover:text-primary-800">
+        <router-link to="/studies" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors">
           ← Back to Studies
         </router-link>
         <h1 class="text-3xl font-bold mt-2">Study Details</h1>

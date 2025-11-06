@@ -76,14 +76,14 @@
             <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
               <button
                 @click="editUser(user)"
-                class="text-primary-600 hover:text-primary-800 dark:text-primary-400"
+                class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
               >
                 Edit
               </button>
               <button
                 v-if="user.id !== authStore.user?.id"
                 @click="deleteUser(user.id, user.username)"
-                class="text-red-600 hover:text-red-800 dark:text-red-400"
+                class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
               >
                 Delete
               </button>

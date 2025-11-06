@@ -1,11 +1,11 @@
 <template>
-  <div class="card">
+  <div class="card hover:shadow-md transition-shadow border-l-4 border-primary-500">
     <div class="flex items-center justify-between">
       <div>
-        <p class="text-sm text-gray-600 dark:text-gray-400">{{ title }}</p>
-        <p class="text-3xl font-bold mt-2">{{ value.toLocaleString() }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ title }}</p>
+        <p class="text-3xl font-bold mt-2 text-primary-700 dark:text-primary-400">{{ value.toLocaleString() }}</p>
       </div>
-      <div class="text-4xl">{{ icon }}</div>
+      <div class="text-4xl opacity-70">{{ icon }}</div>
     </div>
   </div>
 </template>

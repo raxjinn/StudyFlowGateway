@@ -1,53 +1,53 @@
 <template>
-  <nav class="bg-white dark:bg-gray-800 shadow-lg">
+  <nav class="bg-white dark:bg-gray-800 shadow-lg border-b border-primary-200 dark:border-primary-900">
     <div class="container mx-auto px-4">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center space-x-8">
-          <router-link to="/dashboard" class="text-xl font-bold text-primary-600">
+          <router-link to="/dashboard" class="text-xl font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
             DICOM Gateway
           </router-link>
           
           <div class="flex space-x-4" v-if="authStore.isAuthenticated">
             <router-link
               to="/dashboard"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Dashboard
             </router-link>
             <router-link
               to="/studies"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Studies
             </router-link>
             <router-link
               to="/destinations"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Destinations
             </router-link>
             <router-link
               to="/queues"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Queues
             </router-link>
             <router-link
               to="/settings"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Settings
             </router-link>
             <router-link
               v-if="authStore.isAdmin"
               to="/users"
-              class="px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700"
-              active-class="bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300"
+              class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              active-class="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold"
             >
               Users
             </router-link>
