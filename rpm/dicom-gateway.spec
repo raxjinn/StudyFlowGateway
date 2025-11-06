@@ -95,8 +95,18 @@ if [ ! -f %{buildroot}%{config_path}/config.yaml ]; then
 fi
 
 # Copy systemd service files (including template files for scaling)
-cp systemd/*.service %{buildroot}%{_unitdir}/
-cp systemd/*.target %{buildroot}%{_unitdir}/
+# Copy regular service files
+cp systemd/dicom-gw-api.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-queue-worker.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-forwarder-worker.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-dbpool-worker.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-scp.service %{buildroot}%{_unitdir}/
+# Copy template service files for horizontal scaling
+cp systemd/dicom-gw-queue-worker@.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-forwarder-worker@.service %{buildroot}%{_unitdir}/
+cp systemd/dicom-gw-dbpool-worker@.service %{buildroot}%{_unitdir}/
+# Copy target file
+cp systemd/dicom-gw.target %{buildroot}%{_unitdir}/
 
 # Copy Nginx configuration
 cp nginx/dicom-gateway.conf %{buildroot}%{_sysconfdir}/nginx/conf.d/
