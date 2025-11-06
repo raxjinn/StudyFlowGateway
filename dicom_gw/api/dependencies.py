@@ -37,11 +37,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    user_id = payload.get("sub")
-    if not user_id:
+    user_id_str = payload.get("sub")
+    if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
+        )
+    
+    # Convert string ID to UUID
+    try:
+        from uuid import UUID
+        user_id = UUID(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token",
         )
     
     async for session in get_db_session():

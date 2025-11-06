@@ -278,7 +278,25 @@ async def login(
 @router.get("/auth/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
-    return UserResponse.model_validate(current_user)
+    try:
+        # Ensure user object is properly loaded
+        # Convert UUID to string for response
+        user_data = {
+            "id": str(current_user.id),
+            "username": current_user.username,
+            "email": current_user.email,
+            "role": current_user.role,
+            "full_name": current_user.full_name,
+            "enabled": current_user.enabled,
+            "last_login_at": current_user.last_login_at,
+        }
+        return UserResponse(**user_data)
+    except Exception as e:
+        logger.error("Failed to serialize user info: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve user information",
+        ) from e
 
 
 @router.post("/auth/password/change")
