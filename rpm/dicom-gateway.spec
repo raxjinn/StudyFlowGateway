@@ -104,9 +104,12 @@ cp nginx/dicom-gateway.conf %{buildroot}%{_sysconfdir}/nginx/conf.d/
 # Copy logrotate configuration
 cp rpm/logrotate.conf %{buildroot}%{_sysconfdir}/logrotate.d/dicom-gateway
 
-# Copy scripts
-cp scripts/*.sh %{buildroot}%{app_path}/scripts/ 2>/dev/null || true
-chmod +x %{buildroot}%{app_path}/scripts/*.sh 2>/dev/null || true
+# Copy scripts (create directory first)
+mkdir -p %{buildroot}%{app_path}/scripts
+if [ -d scripts ] && [ "$(ls -A scripts/*.sh 2>/dev/null)" ]; then
+    cp scripts/*.sh %{buildroot}%{app_path}/scripts/
+    chmod +x %{buildroot}%{app_path}/scripts/*.sh
+fi
 
 # Copy documentation
 cp -r docs/* %{buildroot}%{_docdir}/%{name}-%{version}/ 2>/dev/null || true
@@ -152,7 +155,7 @@ chown -R %{service_user}:%{service_user} %{log_path}
 mkdir -p %{data_path}/storage
 mkdir -p %{data_path}/incoming
 mkdir -p %{data_path}/queue
-mkdir -p %{app_path}/scripts
+# Note: scripts directory is created in %install section
 mkdir -p %{data_path}/forwarded
 mkdir -p %{data_path}/failed
 mkdir -p %{data_path}/tmp
@@ -268,9 +271,9 @@ fi
 %{_unitdir}/dicom-gw-forwarder-worker@.service
 %{_unitdir}/dicom-gw-dbpool-worker@.service
 
-# Scripts
+# Scripts (only include if directory exists)
 %dir %{app_path}/scripts
-%{app_path}/scripts/*.sh
+%{app_path}/scripts/scale-workers.sh
 
 # Nginx configuration
 %config(noreplace) %{_sysconfdir}/nginx/conf.d/dicom-gateway.conf
